@@ -20,9 +20,12 @@ namespace OrdersDbArchiver.BusinessLogicLayer
 
         public DataProcessor(string connectionString, object locker)
         {
-            _sessionGuid = Guid.NewGuid();
-            _repository = new DbArchiverRepository<Order>(connectionString);           
+            _sessionGuid = Guid.NewGuid();    
             _locker = locker;
+            lock(_locker)
+            {
+                _repository = new DbArchiverRepository<Order>(connectionString);
+            }
         }
 
         public void Start(OrderFileName file)
