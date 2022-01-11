@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace OrdersDbArchiver.DataAccessLayer.Repositories
 {
-    public class DbArchiverRepository<T> : IRepository<T> where T : class
+    public class DbArchiverRepository<T> : IGenericRepository<T> where T : class
     {
         private readonly DbArchiverContext _context;
 
@@ -15,14 +15,21 @@ namespace OrdersDbArchiver.DataAccessLayer.Repositories
             _context = new DbArchiverContext(connectionString);
         }
 
-        public T FindOrAdd(T entity, Func<T, bool> func)
+        public E FindOrAdd<E>(E entity, Func<E, bool> func) where E : class
         {
             if (entity == null)
             {
                 throw new ArgumentNullException(nameof(entity), "");
             }
 
-            return _context.Set<T>().Where(func)?.FirstOrDefault() ?? _context.Set<T>().Add(entity);
+            var result = _context.Set<E>().Where(func).FirstOrDefault();
+            if (result == null)
+            {
+                result = _context.Set<E>().Add(entity);
+                SaveData();
+            }
+
+            return result;
         } 
 
         public void AddRange(IEnumerable<T> entities)
@@ -30,13 +37,8 @@ namespace OrdersDbArchiver.DataAccessLayer.Repositories
             _context.Set<T>().AddRange(entities);
         }
 
-        public void Remove(Guid sessionGuid, Func<T, bool> func)
+        public void Remove(Func<T, bool> func)
         {
-            if (sessionGuid == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(sessionGuid), "");
-            }
-
             T item = _context.Set<T>().Where(func)?.FirstOrDefault();
             if (item != null)
             {
@@ -46,7 +48,15 @@ namespace OrdersDbArchiver.DataAccessLayer.Repositories
 
         public void SaveData()
         {
-            _context.SaveChanges();
+            try
+            {
+                _context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+
         }
     }
 }

@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace OrdersDbArchiver.DataAccessLayer.Interfaces
 {
-    internal interface IRepository<T>
+    public interface IGenericRepository<T>
     {
-        T FindOrAdd(T entity, Func<T, bool> func);
+        E FindOrAdd<E>(E entity, Func<E, bool> func) where E : class;
 
         void AddRange(IEnumerable<T> entities);
 
-        void Remove(Guid sessionGuid, Func<T, bool> func);
+        void Remove(Func<T, bool> func);
 
         void SaveData();
     }
