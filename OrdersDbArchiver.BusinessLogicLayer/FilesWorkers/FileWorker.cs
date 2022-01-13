@@ -1,4 +1,4 @@
-﻿using OrdersDbArchiver.BusinessLogicLayer.FilesWorkers.Models;
+﻿using OrdersDbArchiver.BusinessLogicLayer.Models;
 using OrdersDbArchiver.BusinessLogicLayer.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -8,21 +8,17 @@ namespace OrdersDbArchiver.BusinessLogicLayer.FilesWorkers
 {
     internal class FileWorker : IFileWorker
     {
-        public IEnumerable<OrderFileName> GetFilesPath(string folderPath, string fileExtension, IFileInfoFactory fileInfoFactory)
+        public IEnumerable<string> GetFilesPath(AppConfigsModel configsModel)
         {
-            if (string.IsNullOrWhiteSpace(folderPath))
+            if (configsModel == null)
             {
                 throw new ArgumentNullException();
             }
 
-            var files = Directory.GetFiles(folderPath, fileExtension, SearchOption.TopDirectoryOnly);
-            foreach (var file in files)
-            {
-                yield return fileInfoFactory.CreateModel(file);
-            }
+            return Directory.GetFiles(configsModel.Folders.ObservedFolder, configsModel.Folders.ObservedFilesPattern, SearchOption.TopDirectoryOnly);
         }
 
-        public IEnumerable<string> ReadFileData(OrderFileName fileNameModel)
+        public IEnumerable<string> ReadFileData(FileNameModel fileNameModel)
         {
             if (fileNameModel == null)
             {
@@ -37,7 +33,7 @@ namespace OrdersDbArchiver.BusinessLogicLayer.FilesWorkers
             return File.ReadLines(fileNameModel.FullFilePath);
         }
 
-        public void FileTransfer(OrderFileName fileNameModel)
+        public void FileTransfer(FileNameModel fileNameModel)
         {
             if (fileNameModel == null)
             {

@@ -1,17 +1,40 @@
-﻿using Microsoft.Extensions.Configuration;
-using OrdersDbArchiver.BusinessLogicLayer;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using OrdersDbArchiver.App.Infrastructure.Logger;
+using OrdersDbArchiver.BusinessLogicLayer.Models;
 using System;
+using System.IO;
 
 namespace OrdersDbArchiver.App
 {
-    internal class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            var builder = new ConfigurationBuilder();
-            var config = builder.SetBasePath(Environment.CurrentDirectory).AddJsonFile("appsettings.json").Build();
-            OrdersArchiver dataHandler = new OrdersArchiver(config["ConnectionStrings:OrderArhiverConnection"], config["Folders:ObservedFolder"], config["Folders:TargetFolder"]);
-            dataHandler.Start();
+            Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+            CreateHostBuilder(args).Build().Run();
         }
+
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+            .ConfigureAppConfiguration((hostContext, builder) =>
+            {
+                builder.AddJsonFile("appsettings.json", true, true);
+            })
+            .ConfigureLogging(loggerFactory =>
+            {
+                string loggerFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logger.txt");
+                loggerFactory.AddFile(loggerFilePath);
+            })
+            .UseWindowsService(options =>
+            {
+                options.ServiceName = "OrdersDbArchiverService";
+            })
+            .ConfigureServices((hostContext, services) =>
+            {
+                services.AddHostedService<Worker>();
+                services.Configure<AppConfigsModel>(hostContext.Configuration.GetSection("AppConfig"));
+            });
     }
 }

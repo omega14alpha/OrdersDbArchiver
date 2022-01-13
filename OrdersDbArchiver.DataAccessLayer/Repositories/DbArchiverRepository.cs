@@ -8,7 +8,7 @@ namespace OrdersDbArchiver.DataAccessLayer.Repositories
 {
     public class DbArchiverRepository<T> : IGenericRepository<T> where T : class
     {
-        private readonly DbArchiverContext _context;
+        private DbArchiverContext _context;
 
         public DbArchiverRepository(string connectionString)
         {
@@ -17,11 +17,6 @@ namespace OrdersDbArchiver.DataAccessLayer.Repositories
 
         public E FindOrAdd<E>(E entity, Func<E, bool> func) where E : class
         {
-            if (entity == null)
-            {
-                throw new ArgumentNullException(nameof(entity), "");
-            }
-
             var result = _context.Set<E>().Where(func).FirstOrDefault();
             if (result == null)
             {
@@ -30,7 +25,7 @@ namespace OrdersDbArchiver.DataAccessLayer.Repositories
             }
 
             return result;
-        } 
+        }
 
         public void AddRange(IEnumerable<T> entities)
         {
@@ -48,15 +43,7 @@ namespace OrdersDbArchiver.DataAccessLayer.Repositories
 
         public void SaveData()
         {
-            try
-            {
-                _context.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-
+            _context.SaveChanges();
         }
     }
 }

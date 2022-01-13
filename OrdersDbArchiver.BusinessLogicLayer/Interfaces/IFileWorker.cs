@@ -1,14 +1,14 @@
-﻿using OrdersDbArchiver.BusinessLogicLayer.FilesWorkers.Models;
+﻿using OrdersDbArchiver.BusinessLogicLayer.Models;
 using System.Collections.Generic;
 
 namespace OrdersDbArchiver.BusinessLogicLayer.Interfaces
 {
     internal interface IFileWorker
     {
-        IEnumerable<OrderFileName> GetFilesPath(string folderPath, string searchFileExtension, IFileInfoFactory fileInfoFactory);
+        IEnumerable<string> GetFilesPath(AppConfigsModel configsModel);
 
-        IEnumerable<string> ReadFileData(OrderFileName fileNameModel);
+        IEnumerable<string> ReadFileData(FileNameModel fileNameModel);
 
-        void FileTransfer(OrderFileName fileNameModel);
+        void FileTransfer(FileNameModel fileNameModel);
     }
 }

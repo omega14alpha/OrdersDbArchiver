@@ -1,46 +1,54 @@
 ﻿using OrdersDbArchiver.BusinessLogicLayer.FilesWorkers;
-using OrdersDbArchiver.BusinessLogicLayer.FilesWorkers.Factories;
-using OrdersDbArchiver.BusinessLogicLayer.FilesWorkers.Models;
+using OrdersDbArchiver.BusinessLogicLayer.Models;
+using OrdersDbArchiver.BusinessLogicLayer.Infrastructure;
 using OrdersDbArchiver.BusinessLogicLayer.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace OrdersDbArchiver.BusinessLogicLayer
 {
-    public class OrdersArchiver
+    public class OrdersArchiver : IOrdersArchiver
     {
-        private readonly string _connectionString;
-
-        private readonly string _observedFolder;
+        private readonly AppConfigsModel _configsModel;
 
         private readonly IFileInfoFactory _fileInfoFactory;
 
+        private readonly IFileWatcher _fileWatcher;
+
         private readonly CancellationTokenSource _tokenSource;
 
-        public OrdersArchiver(string connectionString, string observedFolder, string targetFileFolder)
+        public OrdersArchiver(AppConfigsModel configsModel, IFileInfoFactory fileInfoFactory, IFileWatcher fileWatcher)
         {
-            _connectionString = connectionString;
-            _observedFolder = observedFolder;
-
-            _fileInfoFactory = new FileInfoFactory(targetFileFolder);
+            _configsModel = configsModel;
+            _fileInfoFactory = fileInfoFactory;
+            _fileWatcher = fileWatcher;
+            _fileWatcher.OnNewFileDetected += NewFileDetected;
             _tokenSource = new CancellationTokenSource();
         }
 
         public void Start()
         {
             CancellationToken token = _tokenSource.Token;
-            var files = new List<OrderFileName>(GetFiles(token));
-            ArchiveData(files, token);
+            try
+            {
+                var files = new List<FileNameModel>(GetFiles(token));
+                ArchiveData(files, token);
+            }
+            catch (Exception ex)
+            {
+                Messager.SendMessage(this, ex.Message);
+            }
         }
 
-        public void StopWork()
-        {
-            _tokenSource.Cancel();
-        }
+        public void StopWork() => _tokenSource.Cancel();        
 
-        private IEnumerable<OrderFileName> GetFiles(CancellationToken token) => 
+        private void NewFileDetected(object sender, FileSystemEventArgs e) => Start();        
+
+        private IEnumerable<FileNameModel> GetFiles(CancellationToken token) => 
             Task.Factory.StartNew(() =>
             {
                 IFileWorker worker = new FileWorker();
@@ -50,30 +58,49 @@ namespace OrdersDbArchiver.BusinessLogicLayer
                     return null;
                 }
 
-                return worker.GetFilesPath(_observedFolder, "*.csv", _fileInfoFactory);
+                string message = string.Empty;
+
+                try
+                {
+                    var files = worker.GetFilesPath(_configsModel);
+                    var models =  _fileInfoFactory.CreateFileInfoModels(files, _configsModel.Folders.TargetFolder);
+                    message = $"Detected {models.Count()} files.";
+                    return models;
+                }
+                catch (Exception ex)
+                {
+                    message = ex.Message;
+                    return null;
+                }
+                finally
+                {
+                    Messager.SendMessage(this, message);
+                }
             }).Result;
 
-        private void ArchiveData(List<OrderFileName> files, CancellationToken token)
+        private void ArchiveData(List<FileNameModel> files, CancellationToken token)
         {
             object locker = new object();
             Task[] tasks = new Task[files.Count()];
             for (int i = 0; i < files.Count; i++)
             {
-                tasks[i] = CreateTask(files[i], locker, token);
+                tasks[i] = CreateDataProcessorTask(files[i], locker, token);
             }
             
             Task.WaitAll(tasks);
         }
 
-        private Task CreateTask(OrderFileName file, object locker, CancellationToken token) =>
+        private Task CreateDataProcessorTask(FileNameModel file, object locker, CancellationToken token) =>
             Task.Factory.StartNew(() =>
             {
-                DataProcessor processor = new DataProcessor(_connectionString, locker);
+                using DataProcessor processor = new DataProcessor(_configsModel.ConnectionStrings.ArhiverConnectionString, locker);
                 processor.Start(file);
                 if (token.IsCancellationRequested)
                 {
                     return;
                 }
+                
+                Messager.SendMessage(this, $"File {file.FileName} has been saved.");
             });
     }
 }

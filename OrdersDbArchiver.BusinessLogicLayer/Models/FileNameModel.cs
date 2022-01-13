@@ -1,6 +1,6 @@
-﻿namespace OrdersDbArchiver.BusinessLogicLayer.FilesWorkers.Models
+﻿namespace OrdersDbArchiver.BusinessLogicLayer.Models
 {
-    public class OrderFileName
+    public class FileNameModel
     {
         public string Manager { get; set; }
 

@@ -1,9 +1,10 @@
-﻿using OrdersDbArchiver.BusinessLogicLayer.FilesWorkers.Models;
+﻿using OrdersDbArchiver.BusinessLogicLayer.Models;
+using System.Collections.Generic;
 
 namespace OrdersDbArchiver.BusinessLogicLayer.Interfaces
 {
     public interface IFileInfoFactory
     {
-        OrderFileName CreateModel(string fileName);
+        IEnumerable<FileNameModel> CreateFileInfoModels(IEnumerable<string> filePaths, string targetPath);
     }
 }
