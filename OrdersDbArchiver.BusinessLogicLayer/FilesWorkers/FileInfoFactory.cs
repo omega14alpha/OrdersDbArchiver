@@ -13,6 +13,16 @@ namespace OrdersDbArchiver.BusinessLogicLayer.FilesWorkers
 
         public IEnumerable<FileNameModel> CreateFileInfoModels(IEnumerable<string> filePaths, string targetPath)
         {
+            if (filePaths == null)
+            {
+                throw new ArgumentNullException($"Argument '{nameof(filePaths)}' cannot be equals null.");
+            }
+
+            if (string.IsNullOrWhiteSpace(targetPath))
+            {
+                throw new ArgumentNullException($"Argument '{nameof(targetPath)}' cannot be empty or equals null.");
+            }
+
             foreach (var path in filePaths)
             {
                 yield return CreateModel(path, targetPath);
@@ -23,7 +33,12 @@ namespace OrdersDbArchiver.BusinessLogicLayer.FilesWorkers
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException($"Argument '{nameof(path)}' cannot be empty or equals null.");
+            }
+
+            if (string.IsNullOrWhiteSpace(targetPath))
+            {
+                throw new ArgumentNullException($"Argument '{nameof(targetPath)}' cannot be empty or equals null.");
             }
 
             FileInfo fileInfo = new FileInfo(path);

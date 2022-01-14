@@ -1,10 +1,9 @@
 ﻿using OrdersDbArchiver.BusinessLogicLayer.Models;
-using System;
 
 namespace OrdersDbArchiver.BusinessLogicLayer.Interfaces
 {
-    internal interface IDataProcessor : IDisposable
+    internal interface IDataProcessor
     {
-        void Start(FileNameModel file);
+        void StartFileProcessing(FileNameModel file);
     }
 }

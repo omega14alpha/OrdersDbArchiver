@@ -1,6 +1,5 @@
 ﻿using OrdersDbArchiver.BusinessLogicLayer.FilesWorkers;
 using OrdersDbArchiver.BusinessLogicLayer.Models;
-using OrdersDbArchiver.BusinessLogicLayer.Infrastructure;
 using OrdersDbArchiver.BusinessLogicLayer.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -8,11 +7,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
+using OrdersDbArchiver.BusinessLogicLayer.EventsArgs;
 
 namespace OrdersDbArchiver.BusinessLogicLayer
 {
     public class OrdersArchiver : IOrdersArchiver
     {
+        public event EventHandler<MessageEventArgs> OnMessage;
+
         private readonly AppConfigsModel _configsModel;
 
         private readonly IFileInfoFactory _fileInfoFactory;
@@ -30,52 +32,43 @@ namespace OrdersDbArchiver.BusinessLogicLayer
             _tokenSource = new CancellationTokenSource();
         }
 
-        public void Start()
+        public void StartWork()
         {
             CancellationToken token = _tokenSource.Token;
             try
             {
                 var files = new List<FileNameModel>(GetFiles(token));
+                SendMessage($"Founded {files.Count} files.");
                 ArchiveData(files, token);
             }
             catch (Exception ex)
             {
-                Messager.SendMessage(this, ex.Message);
+                SendMessage(ex.Message);
             }
         }
 
-        public void StopWork() => _tokenSource.Cancel();        
+        public void StopWork() => _tokenSource.Cancel();
 
-        private void NewFileDetected(object sender, FileSystemEventArgs e) => Start();        
+        private void NewFileDetected(object sender, FileSystemEventArgs e)
+        {
+            SendMessage($"Detected file -> {e.Name}.");
+            StartWork();
+        }
 
-        private IEnumerable<FileNameModel> GetFiles(CancellationToken token) => 
+        private IEnumerable<FileNameModel> GetFiles(CancellationToken token) =>
             Task.Factory.StartNew(() =>
             {
                 IFileWorker worker = new FileWorker();
 
                 if (token.IsCancellationRequested)
                 {
+                    SendMessage($"Operation canceled.");
                     return null;
                 }
 
-                string message = string.Empty;
-
-                try
-                {
-                    var files = worker.GetFilesPath(_configsModel);
-                    var models =  _fileInfoFactory.CreateFileInfoModels(files, _configsModel.Folders.TargetFolder);
-                    message = $"Detected {models.Count()} files.";
-                    return models;
-                }
-                catch (Exception ex)
-                {
-                    message = ex.Message;
-                    return null;
-                }
-                finally
-                {
-                    Messager.SendMessage(this, message);
-                }
+                var files = worker.GetFilesPath(_configsModel);
+                var models = _fileInfoFactory.CreateFileInfoModels(files, _configsModel.Folders.TargetFolder);
+                return models;
             }).Result;
 
         private void ArchiveData(List<FileNameModel> files, CancellationToken token)
@@ -86,21 +79,32 @@ namespace OrdersDbArchiver.BusinessLogicLayer
             {
                 tasks[i] = CreateDataProcessorTask(files[i], locker, token);
             }
-            
+
             Task.WaitAll(tasks);
         }
 
         private Task CreateDataProcessorTask(FileNameModel file, object locker, CancellationToken token) =>
             Task.Factory.StartNew(() =>
             {
-                using DataProcessor processor = new DataProcessor(_configsModel.ConnectionStrings.ArhiverConnectionString, locker);
-                processor.Start(file);
+                DataProcessorUoW processor = new DataProcessorUoW(_configsModel.ConnectionStrings.ArhiverConnectionString, locker);
+                processor.StartFileProcessing(file);
                 if (token.IsCancellationRequested)
                 {
+                    SendMessage($"Operation canceled.");
                     return;
                 }
-                
-                Messager.SendMessage(this, $"File {file.FileName} has been saved.");
+
+                SendMessage($"File {file.FileName} has been saved.");
             });
+
+        private void SendMessage(string message)
+        {
+            InvokeOnMessage(this, new MessageEventArgs(message));
+        }
+
+        private void InvokeOnMessage(object sender, MessageEventArgs args)
+        {
+            OnMessage?.Invoke(sender, args);
+        }
     }
 }

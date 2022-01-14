@@ -1,6 +1,5 @@
 ﻿using OrdersDbArchiver.BusinessLogicLayer.FilesWorkers;
 using OrdersDbArchiver.BusinessLogicLayer.Models;
-using OrdersDbArchiver.BusinessLogicLayer.Infrastructure.Constants;
 using OrdersDbArchiver.BusinessLogicLayer.Interfaces;
 using OrdersDbArchiver.DataAccessLayer.Entities;
 using OrdersDbArchiver.DataAccessLayer.Interfaces;
@@ -11,7 +10,7 @@ using System.Globalization;
 
 namespace OrdersDbArchiver.BusinessLogicLayer
 {
-    internal class DataProcessor : IDataProcessor
+    internal class DataProcessorUoW : IDataProcessor
     {
         private readonly string dataFormat = "dd.MM.yyyy";
 
@@ -21,45 +20,68 @@ namespace OrdersDbArchiver.BusinessLogicLayer
 
         private IGenericRepository<Order> _repository;
 
-        public DataProcessor(string connectionString, object locker)
+        private IFileWorker _worker;
+
+        public DataProcessorUoW(string connectionString, object locker)
         {
             _sessionGuid = Guid.NewGuid();    
             _locker = locker;
-            lock(_locker)
+            _worker = new FileWorker();
+            lock (_locker)
             {
                 _repository = new DbArchiverRepository<Order>(connectionString);
             }
         }
 
-        public void Start(FileNameModel model)
+        public void StartFileProcessing(FileNameModel model)
         {
             if (model == null)
             {
-                throw new ArgumentNullException(string.Format(TextData.ArgumentIsNull, nameof(model)));
+                throw new ArgumentNullException($"Argument '{nameof(model)}' cannot be equals null.");
             }
 
-            IFileWorker worker = new FileWorker();
-            var data = worker.ReadFileData(model);
+            var data = _worker.ReadFileData(model);
+            var orders = GetOrdersCollection(data, model);
+            SaveDataToDb(orders);
+            TransferFile(model);
+        }
 
+        private void SaveDataToDb(IEnumerable<Order> orders)
+        {
             try
-            {
-                var orders = GetOrdersCollection(data, model);
+            {                
                 _repository.AddRange(orders);
                 _repository.SaveData();
-                worker.FileTransfer(model);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _repository.Remove(s => s.SessionId == _sessionGuid);
-                throw new Exception(string.Format(TextData.DbWorkError, ex.Message));
+                throw new Exception($"When saving data to the database, an error occurred, data was rolled back.");
+            }
+        }
+
+        private void TransferFile(FileNameModel model)
+        {
+            try
+            {
+                _worker.FileTransfer(model);
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
 
         private IEnumerable<Order> GetOrdersCollection(IEnumerable<string> datas, FileNameModel model)
         {
+            if (datas == null)
+            {
+                throw new ArgumentNullException($"Argument '{nameof(datas)}' cannot be equals null.");
+            }
+
             if (model == null)
             {
-                throw new ArgumentNullException(string.Format(TextData.ArgumentIsNull, nameof(model)));
+                throw new ArgumentNullException($"Argument '{nameof(model)}' cannot be equals null.");
             }
 
             foreach (var data in datas)
@@ -80,11 +102,6 @@ namespace OrdersDbArchiver.BusinessLogicLayer
                     yield return order;
                 }
             }
-        }
-
-        public void Dispose()
-        {
-            _repository = null;
         }
     }
 }

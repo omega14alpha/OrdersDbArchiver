@@ -7,7 +7,6 @@ using OrdersDbArchiver.BusinessLogicLayer.Interfaces;
 using System.Threading;
 using System.Threading.Tasks;
 using OrdersDbArchiver.BusinessLogicLayer.FilesWorkers;
-using OrdersDbArchiver.BusinessLogicLayer.Infrastructure;
 
 namespace OrdersDbArchiver.App
 {
@@ -21,13 +20,13 @@ namespace OrdersDbArchiver.App
         {
             _logger = logger;
             _configModel = appOptions.Value;
-            Messager.OnMessage += (sender, args) => _logger.LogInformation(args.Message);
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             IOrdersArchiver dataHandler = new OrdersArchiver(_configModel, new FileInfoFactory(), new FileWatcher(_configModel.Folders.ObservedFolder));
-            dataHandler.Start();
+            dataHandler.OnMessage += (sender, args) => _logger.LogInformation(args.Message);
+            dataHandler.StartWork();
 
             return Task.CompletedTask;
         }

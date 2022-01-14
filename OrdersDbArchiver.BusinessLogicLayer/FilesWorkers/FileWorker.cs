@@ -12,7 +12,7 @@ namespace OrdersDbArchiver.BusinessLogicLayer.FilesWorkers
         {
             if (configsModel == null)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException($"Argument '{nameof(configsModel)}' cannot be equals null.");
             }
 
             return Directory.GetFiles(configsModel.Folders.ObservedFolder, configsModel.Folders.ObservedFilesPattern, SearchOption.TopDirectoryOnly);
@@ -22,12 +22,12 @@ namespace OrdersDbArchiver.BusinessLogicLayer.FilesWorkers
         {
             if (fileNameModel == null)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException($"Argument '{nameof(fileNameModel)}' cannot be equals null.");
             }
 
             if (!File.Exists(fileNameModel.FullFilePath))
             {
-                throw new FileNotFoundException();
+                throw new FileNotFoundException($"File {nameof(fileNameModel.FullFilePath)} not found.");
             }
 
             return File.ReadLines(fileNameModel.FullFilePath);
@@ -37,23 +37,16 @@ namespace OrdersDbArchiver.BusinessLogicLayer.FilesWorkers
         {
             if (fileNameModel == null)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException($"Argument '{nameof(fileNameModel)}' cannot be equals null.");
             }
 
             if (!File.Exists(fileNameModel.FullFilePath))
             {
-                throw new FileNotFoundException();
+                throw new FileNotFoundException($"File {nameof(fileNameModel.FullFilePath)} not found.");
             }
 
-            try
-            {
-                CreateFolder(fileNameModel.TargetFilePath);
-                File.Move(fileNameModel.FullFilePath, fileNameModel.FullTargetFilePath);
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            CreateFolder(fileNameModel.TargetFilePath);
+            File.Move(fileNameModel.FullFilePath, fileNameModel.FullTargetFilePath, true);
         }
 
         private void CreateFolder(string path)
