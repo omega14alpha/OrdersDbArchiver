@@ -1,6 +1,6 @@
 ﻿{
   "profiles": {
-    "OrdersDbArchiver.App": {
+    "OrdersDbArchiver.ServiceClient": {
       "commandName": "Project",
       "dotnetRunMessages": "true",
       "environmentVariables": {

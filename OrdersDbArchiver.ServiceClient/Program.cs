@@ -1,12 +1,12 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using OrdersDbArchiver.App.Infrastructure.Logger;
+using OrdersDbArchiver.ServiceClient.Infrastructure.Logger;
 using OrdersDbArchiver.BusinessLogicLayer.Models;
 using System;
 using System.IO;
 
-namespace OrdersDbArchiver.App
+namespace OrdersDbArchiver.ServiceClient
 {
     public class Program
     {

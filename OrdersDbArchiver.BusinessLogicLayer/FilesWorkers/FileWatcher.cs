@@ -1,4 +1,5 @@
 ﻿using OrdersDbArchiver.BusinessLogicLayer.Interfaces;
+using OrdersDbArchiver.BusinessLogicLayer.Models;
 using System;
 using System.IO;
 
@@ -10,9 +11,10 @@ namespace OrdersDbArchiver.BusinessLogicLayer.FilesWorkers
 
         private readonly FileSystemWatcher _fileWatcher;
 
-        public FileWatcher(string observedFolderPath)
+        public FileWatcher(FoldersInfoModel foldersInfoModel)
         {
-            _fileWatcher = new FileSystemWatcher(observedFolderPath);
+            _fileWatcher = new FileSystemWatcher(foldersInfoModel.ObservedFolder);
+            _fileWatcher.Filter = foldersInfoModel.ObservedFilesPattern;
             _fileWatcher.Created += InviteOnNewFileDetected;
             _fileWatcher.EnableRaisingEvents = true;
         }

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <UserSecretsId>dotnet-OrdersDbArchiver.App-9177C991-2C25-44F2-8190-1366A8FF6CFC</UserSecretsId>
+    <UserSecretsId>dotnet-OrdersDbArchiver.ServiceClient-2076A191-B472-4D90-B6F9-1F9387B66562</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

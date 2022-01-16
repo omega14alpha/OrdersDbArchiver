@@ -2,7 +2,7 @@
 using System;
 using System.IO;
 
-namespace OrdersDbArchiver.App.Infrastructure.Logger
+namespace OrdersDbArchiver.ServiceClient.Infrastructure.Logger
 {
     internal class FileLogger : ILogger
     {

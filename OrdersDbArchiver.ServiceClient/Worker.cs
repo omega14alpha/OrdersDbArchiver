@@ -2,13 +2,13 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OrdersDbArchiver.BusinessLogicLayer;
-using OrdersDbArchiver.BusinessLogicLayer.Models;
+using OrdersDbArchiver.BusinessLogicLayer.FilesWorkers;
 using OrdersDbArchiver.BusinessLogicLayer.Interfaces;
+using OrdersDbArchiver.BusinessLogicLayer.Models;
 using System.Threading;
 using System.Threading.Tasks;
-using OrdersDbArchiver.BusinessLogicLayer.FilesWorkers;
 
-namespace OrdersDbArchiver.App
+namespace OrdersDbArchiver.ServiceClient
 {
     public class Worker : BackgroundService
     {
@@ -24,7 +24,7 @@ namespace OrdersDbArchiver.App
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            IOrdersArchiver dataHandler = new OrdersArchiver(_configModel, new FileInfoFactory(), new FileWatcher(_configModel.Folders.ObservedFolder));
+            IOrdersArchiver dataHandler = new OrdersArchiver(_configModel, new FileInfoFactory(), new FileWatcher(_configModel.Folders));
             dataHandler.OnMessage += (sender, args) => _logger.LogInformation(args.Message);
             dataHandler.StartWork();
 

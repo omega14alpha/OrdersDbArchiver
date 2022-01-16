@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace OrdersDbArchiver.App.Infrastructure.Logger
+namespace OrdersDbArchiver.ServiceClient.Infrastructure.Logger
 {
     internal class FileLoggerProvider : ILoggerProvider
     {
