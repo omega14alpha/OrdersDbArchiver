@@ -53,7 +53,7 @@ namespace OrdersDbArchiver.BusinessLogicLayer
         private void CheckDb()
         {
             TimerCallback timerCallback = new TimerCallback((e) => SendMessage("."));
-            using Timer timer = new Timer(timerCallback, null, 0, 500);
+            using Timer timer = new Timer(timerCallback, null, 100, 500);
             SendMessage(MessageTextData.CheckDb);
             _repository = new DbArchiverRepository<Order>(_configsModel.ConnectionStrings.ArhiverConnectionString);
             SendMessage(MessageTextData.StartWork);

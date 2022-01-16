@@ -30,7 +30,13 @@ namespace OrdersDbArchiver.BusinessLogicLayer.FilesWorkers
                 throw new FileNotFoundException($"File {nameof(fileNameModel.FullFilePath)} not found.");
             }
 
-            return File.ReadLines(fileNameModel.FullFilePath); // или цикл или ...
+            using (StreamReader reader = new StreamReader(fileNameModel.FullFilePath))
+            {
+                while (!reader.EndOfStream)
+                {
+                    yield return reader.ReadLine();
+                }
+            }
         }
 
         public void FileTransfer(FileNameModel fileNameModel)
