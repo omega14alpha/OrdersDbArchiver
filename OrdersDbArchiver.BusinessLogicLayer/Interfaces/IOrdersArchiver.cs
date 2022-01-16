@@ -1,5 +1,6 @@
 ﻿using OrdersDbArchiver.BusinessLogicLayer.EventsArgs;
 using System;
+using System.Threading;
 
 namespace OrdersDbArchiver.BusinessLogicLayer.Interfaces
 {
@@ -9,6 +10,6 @@ namespace OrdersDbArchiver.BusinessLogicLayer.Interfaces
 
         void StartWork();
 
-        void StopWork();
+        void StopWork(CancellationToken token);
     }
 }

@@ -25,7 +25,7 @@ namespace OrdersDbArchiver.BusinessLogicLayer
 
         private readonly IFileWatcher _fileWatcher;
 
-        private readonly CancellationTokenSource _tokenSource;
+        private CancellationToken _token;
 
         private IGenericRepository<Order> _repository;
 
@@ -34,8 +34,7 @@ namespace OrdersDbArchiver.BusinessLogicLayer
             _configsModel = configsModel;
             _fileInfoFactory = fileInfoFactory;
             _fileWatcher = fileWatcher;
-            _fileWatcher.OnNewFileDetected += NewFileDetected;
-            _tokenSource = new CancellationTokenSource();            
+            _fileWatcher.OnNewFileDetected += NewFileDetected;       
         }
 
         public void StartWork()
@@ -44,10 +43,10 @@ namespace OrdersDbArchiver.BusinessLogicLayer
             FileProcessing();
         }
 
-        public void StopWork()
+        public void StopWork(CancellationToken token)
         {
             SendMessage(MessageTextData.OperationCancel);
-            _tokenSource.Cancel();
+            _token = token;
         }
 
         private void CheckDb()
@@ -67,11 +66,10 @@ namespace OrdersDbArchiver.BusinessLogicLayer
 
         private void FileProcessing()
         {
-            CancellationToken token = _tokenSource.Token;
             try
             {
-                var files = new List<FileNameModel>(GetFiles(token));
-                ArchiveData(files, token);
+                var files = new List<FileNameModel>(GetFiles());
+                ArchiveData(files);
             }
             catch (Exception ex)
             {
@@ -79,13 +77,13 @@ namespace OrdersDbArchiver.BusinessLogicLayer
             }
         }
 
-        private IEnumerable<FileNameModel> GetFiles(CancellationToken token) =>
+        private IEnumerable<FileNameModel> GetFiles() =>
             Task.Factory.StartNew(() =>
             {
                 IFileWorker worker = new FileWorker();
 
-                if (token.IsCancellationRequested)
-                {                    
+                if (_token.IsCancellationRequested)
+                {
                     return null;
                 }
 
@@ -94,24 +92,24 @@ namespace OrdersDbArchiver.BusinessLogicLayer
                 return models;
             }).Result;
 
-        private void ArchiveData(List<FileNameModel> files, CancellationToken token)
+        private void ArchiveData(List<FileNameModel> files)
         {
             object locker = new object();
             Task[] tasks = new Task[files.Count()];    
             for (int i = 0; i < files.Count; i++)
             {
-                tasks[i] = CreateDataProcessorTask(files[i], locker, token);
+                tasks[i] = CreateDataProcessorTask(files[i], locker);
             }
 
             Task.WaitAll(tasks);
         }
 
-        private Task CreateDataProcessorTask(FileNameModel file, object locker, CancellationToken token) =>
+        private Task CreateDataProcessorTask(FileNameModel file, object locker) =>
             Task.Factory.StartNew(() =>
             {
                 DataProcessorUoW processor = new DataProcessorUoW(_repository, locker);
                 processor.StartFileProcessing(file);
-                if (token.IsCancellationRequested)
+                if (_token.IsCancellationRequested)
                 {
                     return;
                 }

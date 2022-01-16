@@ -33,7 +33,7 @@ namespace OrdersDbArchiver.ServiceClient
 
         public override Task StopAsync(CancellationToken cancellationToken)
         {
-            _archiver.StopWork();
+            _archiver.StopWork(cancellationToken);
             return Task.CompletedTask;
         }
     }
