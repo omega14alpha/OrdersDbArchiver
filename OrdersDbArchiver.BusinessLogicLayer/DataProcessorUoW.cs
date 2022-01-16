@@ -3,46 +3,48 @@ using OrdersDbArchiver.BusinessLogicLayer.Models;
 using OrdersDbArchiver.BusinessLogicLayer.Interfaces;
 using OrdersDbArchiver.DataAccessLayer.Entities;
 using OrdersDbArchiver.DataAccessLayer.Interfaces;
-using OrdersDbArchiver.DataAccessLayer.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using OrdersDbArchiver.BusinessLogicLayer.Infrastructure.Constants;
 
 namespace OrdersDbArchiver.BusinessLogicLayer
 {
     internal class DataProcessorUoW : IDataProcessor
     {
-        private readonly string dataFormat = "dd.MM.yyyy";
+        private const string dataFormat = "dd.MM.yyyy";
 
         private readonly Guid _sessionGuid; 
 
         private object _locker;
 
-        private IGenericRepository<Order> _repository;
+        private readonly IGenericRepository<Order> _repository;
 
-        private IFileWorker _worker;
+        private readonly IFileWorker _worker;
 
-        public DataProcessorUoW(string connectionString, object locker)
+        public DataProcessorUoW(IGenericRepository<Order> repository, object locker)
         {
             _sessionGuid = Guid.NewGuid();    
             _locker = locker;
             _worker = new FileWorker();
-            lock (_locker)
-            {
-                _repository = new DbArchiverRepository<Order>(connectionString);
-            }
+            _repository = repository;
         }
 
         public void StartFileProcessing(FileNameModel model)
         {
             if (model == null)
             {
-                throw new ArgumentNullException($"Argument '{nameof(model)}' cannot be equals null.");
+                throw new ArgumentNullException(string.Format(ErrorTextData.ArgumentCannotBeNull, nameof(model)));
             }
 
             var data = _worker.ReadFileData(model);
             var orders = GetOrders(data, model);
-            SaveDataToDb(orders);
+            
+            lock(_locker)
+            {
+                SaveDataToDb(orders);
+            }
+
             TransferFile(model);
         }
 
@@ -56,7 +58,7 @@ namespace OrdersDbArchiver.BusinessLogicLayer
             catch (Exception)
             {
                 _repository.Remove(s => s.SessionId == _sessionGuid);
-                throw new Exception($"When saving data to the database, an error occurred, data was rolled back.");
+                throw new Exception(ErrorTextData.SavingErrorAndDataRolledBack);
             }
         }
 
@@ -68,7 +70,7 @@ namespace OrdersDbArchiver.BusinessLogicLayer
             }
             catch (Exception)
             {
-                throw new Exception($"An error occurred while transferring the file."); 
+                throw new Exception(ErrorTextData.TransferringFileError); 
             }
         }
 
@@ -76,31 +78,31 @@ namespace OrdersDbArchiver.BusinessLogicLayer
         {
             if (datas == null)
             {
-                throw new ArgumentNullException($"Argument '{nameof(datas)}' cannot be equals null.");
+                throw new ArgumentNullException(string.Format(ErrorTextData.ArgumentCannotBeNull, nameof(datas)));
             }
 
             if (model == null)
             {
-                throw new ArgumentNullException($"Argument '{nameof(model)}' cannot be equals null.");
+                throw new ArgumentNullException(string.Format(ErrorTextData.ArgumentCannotBeNull, nameof(model)));
             }
 
             foreach (var data in datas)
             {
                 var d = data.Split(';');
                 lock (_locker)
-                {
-                    Order order = new Order()
-                    {
-                        Date = DateTime.ParseExact(d[0], dataFormat, CultureInfo.InvariantCulture),
-                        AmountOfMoney = Convert.ToDouble(d[3], CultureInfo.GetCultureInfo("en-US")),
-                        SessionId = _sessionGuid,
-                        Manager = _repository.FindOrAdd(new Manager() { Surname = model.Manager }, s => s.Surname == model.Manager),
-                        Client = _repository.FindOrAdd(new Client() { Name = d[1] }, s => s.Name == d[1]),
-                        Item = _repository.FindOrAdd(new Item() { Name = d[2] }, s => s.Name == d[2])
-                    };
+                 {
+                     Order order = new Order()
+                     {
+                         Date = DateTime.ParseExact(d[0], dataFormat, CultureInfo.InvariantCulture),
+                         AmountOfMoney = Convert.ToDouble(d[3], CultureInfo.GetCultureInfo("en-US")),
+                         SessionId = _sessionGuid,
+                         Manager = _repository.FindOrAdd(new Manager() { Surname = model.Manager }, s => s.Surname == model.Manager),
+                         Client = _repository.FindOrAdd(new Client() { Name = d[1] }, s => s.Name == d[1]),
+                         Item = _repository.FindOrAdd(new Item() { Name = d[2] }, s => s.Name == d[2])
+                     };
 
-                    yield return order;
-                }
+                     yield return order;
+                 }
             }
         }
     }

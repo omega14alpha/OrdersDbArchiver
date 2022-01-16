@@ -13,15 +13,12 @@ namespace OrdersDbArchiver.DataAccessLayer.Repositories
         public DbArchiverRepository(string connectionString)
         {
             _context = new DbArchiverContext(connectionString);
+            _context.Database.CreateIfNotExists();
+            _context.Database.Initialize(false);
         }
 
         public E FindOrAdd<E>(E entity, Func<E, bool> func) where E : class
         {
-            if (entity == null)
-            {
-                throw new ArgumentNullException($"Argument '{nameof(entity)}' cannot be equals null.");
-            }
-
             var result = _context.Set<E>().Where(func).FirstOrDefault();
             if (result == null)
             {
@@ -34,11 +31,6 @@ namespace OrdersDbArchiver.DataAccessLayer.Repositories
 
         public void AddRange(IEnumerable<T> entities)
         {
-            if (entities == null)
-            {
-                throw new ArgumentNullException($"Argument '{nameof(entities)}' cannot be equals null.");
-            }
-
             _context.Set<T>().AddRange(entities);
         }
 

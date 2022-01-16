@@ -15,7 +15,6 @@ namespace OrdersDbArchiver.DataAccessLayer.Contexts
 
         public DbArchiverContext(string connectionString) : base(connectionString)
         {
-            Database.CreateIfNotExists();
         }
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)

@@ -12,25 +12,24 @@ namespace OrdersDbArchiver.ConsoleClient
 {
     public class Worker : BackgroundService
     {
-        private readonly AppConfigsModel _configModel;
+        private readonly IOrdersArchiver _archiver;
 
         public Worker(IOptions<AppConfigsModel> appOptions)
         {
-            _configModel = appOptions.Value;
+            var configModel = appOptions.Value;
+            _archiver = new OrdersArchiver(configModel, new FileInfoFactory(), new FileWatcher(configModel.Folders));
+            _archiver.OnMessage += Messager.SendMessage;
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            IOrdersArchiver dataHandler = new OrdersArchiver(_configModel, new FileInfoFactory(), new FileWatcher(_configModel.Folders));
-            dataHandler.OnMessage += Messager.SendMessage;
-
+            _archiver.StartWork();
             return Task.CompletedTask;
         }
 
         public override Task StopAsync(CancellationToken cancellationToken)
         {
-
-
+            _archiver.StopWork();
             return Task.CompletedTask;
         }
     }

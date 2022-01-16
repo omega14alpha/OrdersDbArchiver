@@ -17,7 +17,7 @@ namespace OrdersDbArchiver.ConsoleClient
         {
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken cancellationToken = _cancellationTokenSource.Token;
-            Messager.OnGetMessage += (sender, args) => Console.WriteLine(args.Message);
+            Messager.OnGetMessage += (sender, args) => Console.Write(args.Message);
             WaitCloseApp();
 
             var builder = new HostBuilder()
@@ -45,12 +45,19 @@ namespace OrdersDbArchiver.ConsoleClient
 
         private static Task WaitCloseApp()
         {
+            Console.WriteLine("Press 'Escape' to break all current actions and exit.");
+
             return Task.Factory.StartNew(() =>
             {
-                if (Console.Read() == 'q')
+                ConsoleKeyInfo key = Console.ReadKey();
+                if (key.Key == ConsoleKey.Escape)
                 {
-                    Console.WriteLine("IsCancel");
                     _cancellationTokenSource.Cancel();
+                }
+                else
+                {
+                    Console.WriteLine();
+                    WaitCloseApp();                    
                 }
             });
         }

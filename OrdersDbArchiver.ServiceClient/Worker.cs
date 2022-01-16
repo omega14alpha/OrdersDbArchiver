@@ -14,20 +14,26 @@ namespace OrdersDbArchiver.ServiceClient
     {
         private readonly ILogger<Worker> _logger;
 
-        private readonly AppConfigsModel _configModel;
+        private readonly IOrdersArchiver _archiver;
 
         public Worker(ILogger<Worker> logger, IOptions<AppConfigsModel> appOptions)
         {
             _logger = logger;
-            _configModel = appOptions.Value;
+
+            var configModel = appOptions.Value;
+            _archiver = new OrdersArchiver(configModel, new FileInfoFactory(), new FileWatcher(configModel.Folders));
+            _archiver.OnMessage += (sender, args) => _logger.LogInformation(args.Message);
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            IOrdersArchiver dataHandler = new OrdersArchiver(_configModel, new FileInfoFactory(), new FileWatcher(_configModel.Folders));
-            dataHandler.OnMessage += (sender, args) => _logger.LogInformation(args.Message);
-            dataHandler.StartWork();
+            _archiver.StartWork();
+            return Task.CompletedTask;
+        }
 
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            _archiver.StopWork();
             return Task.CompletedTask;
         }
     }
