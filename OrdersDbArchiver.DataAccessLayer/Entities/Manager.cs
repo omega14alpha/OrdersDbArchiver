@@ -7,7 +7,5 @@ namespace OrdersDbArchiver.DataAccessLayer.Entities
         public int Id { get; set; }
 
         public string Surname { get; set; }
-
-        public ICollection<Order> Orders { get; set; }
     }
 }

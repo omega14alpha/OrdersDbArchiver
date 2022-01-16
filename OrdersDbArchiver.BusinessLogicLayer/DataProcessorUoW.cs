@@ -41,7 +41,7 @@ namespace OrdersDbArchiver.BusinessLogicLayer
             }
 
             var data = _worker.ReadFileData(model);
-            var orders = GetOrdersCollection(data, model);
+            var orders = GetOrders(data, model);
             SaveDataToDb(orders);
             TransferFile(model);
         }
@@ -68,11 +68,11 @@ namespace OrdersDbArchiver.BusinessLogicLayer
             }
             catch (Exception)
             {
-                throw;
+                throw new Exception($"An error occurred while transferring the file."); 
             }
         }
 
-        private IEnumerable<Order> GetOrdersCollection(IEnumerable<string> datas, FileNameModel model)
+        private IEnumerable<Order> GetOrders(IEnumerable<string> datas, FileNameModel model)
         {
             if (datas == null)
             {
